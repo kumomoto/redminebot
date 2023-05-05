@@ -22,69 +22,173 @@ Redmine settings:
 
 ---
 
-Files:
+/app/bot:
 
-/src/api:
+bot.go:
+-- Bot struct: Contains API, connect parameters and link on Worker of user
+-- Init(): Initial connect to bot and set parameters of updates, Api and timeouts
+channelsDistrib.go
+-- addChannelsToMap(): add new channels to map for monitoring (open or close)
+-- checkOpenChannels(): check open channels else close them
+-- getStatusChannels(): get status if channel from user mongo collection
+-- distributionCallbackBetweenUsersChannels(): distribution of User Callbacks(update of channel when user click on the InlineButton)
+-- distributionMessagesBetweenUsersChannels(): distribution of User Messages(update of channel when user click on 'Предоставить номер')
+processUpdate.go
+-- Start(): start of handle updates of channel
+-- processCallback(): handle input Callback of user. Send an update to a specific channel from the channel map. "waitSubject", "waitDesc" , etc - step where needet data from user  
+-- processMessage(): handle input Message of user. Send an update to a specific channel from the channel map. "reg", "waitAttach", etc - step where needet data from user
+-- getStatusUser(): get current step of user
 
-- TGBotApi.go: 
-- -- Bot struct: Contains API, connect parameters and link on Worker of user 
-- -- Init(): Initial connect to bot and set parameters of updates, Api and timeouts 
-- -- Start(): Start process user messages
 
-/src/bot: First version of TGBotApi.go /src/flow:
+/app/flow:
 
-- Flow.go: 
-- -- FlowUserStruct struct: User Object from Mongo 
-- -- NewFlow(): Open new flow for User 
-- -- getNewIssStruct(): Link on new redmine Issue object 
-- -- SetApiAndUpdates(): Installing Api and Updates for Flow Variables 
-- -- FlowProcessCreateIssue(): Process request "Create new Iss" 
-- -- getSelectedTask(): Return object of selected task 
-- -- sendInfoAboutTask(): Sending a message to the user with data that contains the selected problem 
-- -- sendMessageForGetTaskInfo(): Sending message with markup of number issues for get selected issues 
-- -- getReplMarkupStatusIssue(): Get buttons with Numbers of issues 
-- -- checkAmountIssues(): Checks the number of user problems created 
-- -- setStatus(): Set a custom spot in the bot 
-- -- SendMessage(): Sending message for user 
-- -- SendMessageWithButtons(): Sending message with buttons 
-- -- CreateButtonsStatIssMenu(): Create buttons if user in "Status Issue" menu 
-- -- CreateButtonsNewIssMenu(): Create buttons if user in "New Issue" menu 
-- -- CreateButtonsMainMenu(): Create buttons if user in "Main" menu 
-- -- WaitResponce(): Waiting update from user
+buttonsMenu.go:
+-- CreateButtonsMainMenu(): Send mess with buttons for main menu
+-- CreateButtonsStatIssMenu(): Send mess with buttons for menu after getting status of iss
+-- CreateButtonsNewIssMenu(): Send mess with buttons for menu after create new iss
 
-/src/mongo:
+editMessag.go:
+-- editNewIss(): rewrite created iss
 
-- mongodb.go: 
-- -- User sruct: Contain mongo user data 
-- -- DatabaseConnection struct: DB connection data 
-- -- Init(): Init connection 
-- -- Find(): Find user in DB 
-- -- GetUser(): Get collection of user 
-- -- CreateUser(): Create new user in DB 
-- -- UpdateUser(): Update user collection 
-- -- DeleteIssue(): Delete issue monitoring 
-- -- GetIssues(): Get all issues of user
+flowinit.go:
+-- NewFlow(): create new flow for user request
+-- SetApiAndUpdates(): set API for communication with user
+-- Close(): close active flow
 
-/src/redmine:
+getTaskFromRM.go:
+-- getSelectedTask(): get specific iss object form RM
 
-- redmine.go: 
-- -- Task struct: Info obout issue 
-- -- Init(): Init new connection 
-- -- AddNewTask(): Adding new iss to redmine 
-- -- GetInfoTask(): Get selected issue object 
-- -- DeleteClosedIssuesFromCollection(): Кemoval of closed issues from the collection 
-- -- issueCheckStatus(): Check status of issue
+MessagesWithButtons.go:
+-- SendMessage(): send specific string as message to user
+-- SendMessageWithButtons(): send cpecific message with specific buttons to user
 
-/src/worker:
+messagesWithIssInfo.go:
+-- sendInfoAboutTask(): send info about specific iss form RM
 
-- worker.go 
-- -- Worker struct: Contain data of user 
-- -- NewWorker(): Create new worker for Process Message of user 
-- -- ProcessMessage(): Process new message of user 
-- -- userExists(): Check user exist 
-- -- addNewUserToMongo(): Add new collection of new user 
-- -- createRegisterButton(): Create button for get number of user 
-- -- sendRegisterMessage(): Sent register message with buttons
+newIssFaq.go:
+-- faqAboutNewIss(): send FAQ "How to create new iss"
+
+processCreateIssue.go:
+-- FlowProcessCreateIssue(): create new iss in RM. 
+Steps:
+1. Title
+2. Description of new iss
+3. Upload Files
+
+-- SetStepUser(): set cpecific step of user in mongo collection
+-- SetChannelclosedState(): set status "close" in mongo collection
+-- getSendButton(): create marcup with buttons for send of reedit iss
+-- setAuthors(): set author RM ID in created iss
+
+processStatusIss.go:
+-- FlowProcessStatusIssue(): get info about specific iss from RM
+Steps:
+1. Get all iss of current user
+2. Whait data from user(the number of necessary iss)
+3. Send info in chat with user
+
+-- checkAmountIssues(): if amount iss = zero, then send mess obout zero iss
+-- getReplMarkupStatusIssue(): get markup with iss as buttons
+
+pushFiles.go:
+-- pushDocuments(): push docs to RM server
+-- pushPhotos(): push photos to RM server
+
+whaitResponce.go:
+-- whaitSubjectMessage(): wait data from user on "waitSubject" step
+-- waitDeskMessage(): wait message with desk created iss
+-- waitResponceCallback(): wait Callback update
+-- waitResponceWithFiles(): wait message with files
+
+/app/ldap
+ldap.go:
+-- NewLdapConnection(): create new conn with DC
+-- userSearchRequest(): create new search request for get user data
+-- GetAuthResult(): return auth result
+-- GetMail(): return mail of user
+
+/app/mongo:
+
+mongodb.go:
+-- User sruct: Contain mongo user data
+-- DatabaseConnection struct: DB connection data
+-- Init(): Init connection
+-- FindUser(): Find user in DB
+-- GetUser(): Get collection of user
+-- CreateUser(): Create new user in DB
+-- UpdateUser(): Update user collection
+-- DeleteIssue(): Delete issue monitoring
+-- GetIssues(): Get all issues of user
+
+/app/redmine:
+addNewTask.go:
+-- AddNewTask(): create new iss in RM
+
+deleteIssues.go:
+-- DeleteClosedIssuesFromCollection(): check closed iss and set 'false' in mongo collection
+
+newTaskWithAttachments.go
+-- AddNewTaskWithFiles(): create iss with attachments from user
+
+redmineInit.go:
+-- Init(): new RM connection
+-- DownloadfilesForIssue(): download files for created new iss
+-- GetInfoTask(): return Iss object
+-- issueCheckStatus(): return false if iss is close
+
+users.go:
+-- GetRMUserID(): return ID and name of user with specific mail address
+
+/app/uploadFiles:
+createDir.go:
+-- createDirOfUser(): create dir for store files from user
+
+createFileObject.go:
+-- createFileObject(): save file in file system of host
+
+createPhotoObject.go:
+-- createPhotoObject(): save photo in file system of host
+
+downloadFilesFromTg.go:
+-- dowloadDocsFromUserToServer(): download file from TG URL on 555 host
+
+downloadPhotosFromTg.go:
+-- downloadPhotosFromUserToServer(): download photo from TG URL on 555 host
+-- getPhotoFileID(): get ID photo from TG
+
+flowFileInit.go:
+-- NewFileFlow(): create flow for process photos
+-- NewDocsFlow(): create flow for process docs
+-- setDocsSizeAndApi(): set doc data in flow
+
+pushFiles.go:
+-- PushDocsToRedmine(): return attachments with files for create iss
+
+pushPhoto.go:
+-- PushPhotoToRedmine(): return attachments with photos for create iss
+
+uploadDocsToRm.go:
+-- downloadDocOnServer(): download files on RM server
+
+uploadPhotoOnRm.go:
+-- downloadPhotosOnServer(): download photos on RM server
+
+/app/worker:
+
+processCallback.go:
+-- ProcessCallback(): handle request for create iss or get iss info
+
+processStart.go:
+-- ProcessStartMessage(): hande start message
+
+register.go:
+-- tryRegister(): create new user in mongo if ad auth ok
+-- whaitContact(): wait data with telephone number form user
+-- sendMessage(): send specific message to user
+
+worker.go:
+-- NewWorker(): create new worker for user
+-- userExist(): check user in mongo collections
 
 Bot work scheme:
 
@@ -98,7 +202,9 @@ Bot work scheme:
                  Create new Worker
                          |
                          |
-                         |
+                         v
+                     AD Auth ok? NO >---------------------- Deny
+                         | OK
                          |
                          v
                  Process Message <--------------------------<|
